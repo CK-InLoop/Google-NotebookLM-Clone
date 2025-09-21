@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # Backend service
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: notebooklm-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongo:27017/notebooklm
+      - JWT_SECRET=your_jwt_secret_here
+      - CORS_ORIGIN=http://localhost:3000
+      - UPLOAD_DIR=/usr/src/app/uploads
+    volumes:
+      - ./server/uploads:/usr/src/app/uploads
+    depends_on:
+      - mongo
+    networks:
+      - notebooklm-network
+
+  # MongoDB service
+  mongo:
+    image: mongo:6.0
+    container_name: notebooklm-mongo
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_DATABASE=notebooklm
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - notebooklm-network
+
+  # Frontend service (development)
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    container_name: notebooklm-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./client:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:5000/api
+    depends_on:
+      - backend
+    networks:
+      - notebooklm-network
+
+# Define networks
+networks:
+  notebooklm-network:
+    driver: bridge
+
+# Define volumes
+volumes:
+  mongodb_data:
